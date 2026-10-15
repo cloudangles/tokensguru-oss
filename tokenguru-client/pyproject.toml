@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tokenguru-client"
+version = "0.1.0"
+description = "TokenGuru client with automatic prompt optimization and agent tracing"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+authors = [
+  { name = "TokenGuru" },
+]
+keywords = ["llm", "observability", "prompt-optimization", "tracing"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[tool.setuptools]
+packages = ["tokenguru_client"]
