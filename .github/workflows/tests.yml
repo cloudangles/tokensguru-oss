@@ -27,6 +27,11 @@ jobs:
         env:
           PYTHONPATH: src
         run: |
-          # pytest exits with 5 when no tests are collected yet; allow that
-          # until src/tests contains tests.
+          # src/tests is not tracked in git until it contains files, so skip
+          # cleanly when it is missing. pytest exits with 5 when the folder
+          # exists but no tests are collected yet; allow that too.
+          if [ ! -d src/tests ]; then
+            echo "src/tests does not exist yet; skipping tests."
+            exit 0
+          fi
           pytest src/tests || [ $? -eq 5 ]
