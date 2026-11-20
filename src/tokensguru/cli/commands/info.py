@@ -20,7 +20,7 @@ def _package_field(field: str) -> str:
 
 def _short_path(path: Path) -> str:
     try:
-        return f"~/{path.relative_to(Path.home())}"
+        return f"~/{path.relative_to(Path.home()).as_posix()}"
     except ValueError:
         return str(path)
 

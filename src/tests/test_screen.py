@@ -87,8 +87,8 @@ class _FakeTty:
 @pytest.fixture
 def fake_terminal(monkeypatch):
     fake = _FakeTermios()
-    monkeypatch.setattr(screen, "termios", fake)
-    monkeypatch.setattr(screen, "tty", _FakeTty)
+    monkeypatch.setattr(screen, "termios", fake, raising=False)
+    monkeypatch.setattr(screen, "tty", _FakeTty, raising=False)
     monkeypatch.setattr(
         screen.sys, "stdin", io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
     )
