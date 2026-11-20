@@ -1,8 +1,7 @@
 name: Publish to PyPI
 
-# Releases are driven by the version in src/tokensguru/version.py.
-# A push to main that changes that file publishes the version if PyPI does not
-# have it yet. If the version is already published, the run only writes a note.
+# A push to main that changes the version publishes it, if PyPI does not have it yet.
+# Otherwise the run only records that nothing needed publishing.
 on:
   push:
     branches: [main]
@@ -13,43 +12,30 @@ permissions:
   contents: read
 
 jobs:
-  check-version:
+  check:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      publish: ${{ steps.check.outputs.publish }}
+      action: ${{ steps.decide.outputs.action }}
+      version: ${{ steps.decide.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read package version
-        id: version
-        run: |
-          version=$(python3 -c "import runpy; print(runpy.run_path('src/tokensguru/version.py')['__version__'])")
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Check whether PyPI already has this version
-        id: check
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/tokensguru/${VERSION}/json")
-          if [ "$code" = "200" ]; then
-            echo "publish=false" >> "$GITHUB_OUTPUT"
-            echo "Version ${VERSION} is already on PyPI. Nothing to publish." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-            echo "Version ${VERSION} is new. Publishing to PyPI." >> "$GITHUB_STEP_SUMMARY"
-          fi
+      - name: Install release helper dependencies
+        run: python -m pip install packaging
+
+      - name: Decide whether to publish
+        id: decide
+        run: python tools/release.py check
 
   publish:
-    needs: check-version
-    if: needs.check-version.outputs.publish == 'true'
+    needs: check
+    if: needs.check.outputs.action == 'publish'
     runs-on: ubuntu-latest
     environment: pypi
-    permissions:
-      contents: write  # needed to create the version tag
-    env:
-      VERSION: ${{ needs.check-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -68,11 +54,56 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-      - name: Tag the release
+  verify:
+    needs: [check, publish]
+    if: needs.check.outputs.action == 'publish'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the published version from PyPI
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
-            echo "Tag v${VERSION} already exists."
-          else
-            git tag "v${VERSION}"
-            git push origin "v${VERSION}"
-          fi
+          # PyPI can take a short while to serve a new release, so retry.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if python -m venv verify && verify/bin/python -m pip install --no-cache-dir "tokensguru==${VERSION}"; then
+              break
+            fi
+            echo "Attempt ${attempt} failed; waiting for PyPI to serve ${VERSION}"
+            sleep 30
+          done
+          verify/bin/tokensguru --version | grep -F "${VERSION}"
+          verify/bin/tokensguru info
+
+  release:
+    needs: [check, verify]
+    if: needs.check.outputs.action == 'publish'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # creates the tag and the GitHub Release
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Write release notes from the changelog
+        run: python tools/release.py notes "${VERSION}" > release-notes.md
+
+      - name: Create the tag and GitHub Release
+        run: |
+          flags=""
+          # Versions with a letter in them (1.2.0rc1, 2.0.0b1) are pre-releases.
+          if [[ "${VERSION}" =~ [a-zA-Z] ]]; then flags="--prerelease"; fi
+          gh release create "v${VERSION}" \
+            --target "${GITHUB_SHA}" \
+            --title "v${VERSION}" \
+            --notes-file release-notes.md \
+            ${flags}
