@@ -1,0 +1,43 @@
+name: Tests
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Python 3.9 is not provided on ubuntu-latest (Ubuntu 26.04), so it runs on 22.04.
+        include:
+          - {python: '3.9', os: ubuntu-22.04}
+          - {python: '3.10', os: ubuntu-latest}
+          - {python: '3.11', os: ubuntu-latest}
+          - {python: '3.12', os: ubuntu-latest}
+          - {python: '3.13', os: ubuntu-latest}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install pytest
+        run: python -m pip install pytest
+
+      - name: Run tests
+        env:
+          PYTHONPATH: src
+        run: |
+          # src/tests is not tracked in git until it contains files, so skip
+          # cleanly when it is missing. pytest exits with 5 when the folder
+          # exists but no tests are collected yet; allow that too.
+          if [ ! -d src/tests ]; then
+            echo "src/tests does not exist yet; skipping tests."
+            exit 0
+          fi
+          pytest src/tests || [ $? -eq 5 ]

@@ -1,0 +1,39 @@
+name: Python SDK
+on:
+  push:
+    paths: ['tokenguru-client/**', '.github/workflows/sdk.yml']
+  pull_request:
+    paths: ['tokenguru-client/**', '.github/workflows/sdk.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # Python 3.9 is not provided on ubuntu-latest (Ubuntu 26.04), so it runs on 22.04.
+        include:
+          - {python: '3.9', os: ubuntu-22.04}
+          - {python: '3.10', os: ubuntu-latest}
+          - {python: '3.11', os: ubuntu-latest}
+          - {python: '3.12', os: ubuntu-latest}
+          - {python: '3.13', os: ubuntu-latest}
+          - {python: '3.14', os: ubuntu-latest}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python }}'
+      - run: python -m pip install ./tokenguru-client
+      - run: python -m unittest discover -s tokenguru-client/tests -v
+  package-and-langchain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install './tokenguru-client[langchain]' build twine
+      - run: python -m unittest discover -s tokenguru-client/tests -v
+      - run: python -m build tokenguru-client
+      - run: python -m twine check tokenguru-client/dist/*
