@@ -1,32 +1,55 @@
 version: 2
 
+# Dependabot opens update pull requests on a weekly schedule. Related updates are
+# grouped so one review covers them, instead of one pull request per package.
 updates:
-  # Python dependencies at the repository root
+  # Python dependencies for the package (runtime, test and dev tools)
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "python"
+    groups:
+      dev-tools:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "pip-audit"
+          - "build"
+          - "twine"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
-  # Python dependencies for the client SDK
+  # Python dependencies for the client SDK (separate package)
   - package-ecosystem: "pip"
     directory: "/tokenguru-client"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+    open-pull-requests-limit: 3
     labels:
       - "dependencies"
       - "python"
+      - "sdk"
 
-  # GitHub Actions versions used in the workflows
+  # GitHub Actions used by the workflows
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
