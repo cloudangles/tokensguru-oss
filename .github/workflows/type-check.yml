@@ -1,0 +1,28 @@
+name: Type Check
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install mypy
+        run: python -m pip install mypy
+
+      - name: Type-check the package
+        run: |
+          if [ -n "$(find src/tokensguru -name '*.py' 2>/dev/null)" ]; then
+            mypy src/tokensguru
+          else
+            echo "No Python files in src/tokensguru yet; skipping mypy."
+          fi

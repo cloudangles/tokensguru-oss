@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Rejects commit messages that do not follow COMMIT_MESSAGES.md (Conventional Commits).
+# Enable with: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+msg_file="$1"
+subject="$(head -n 1 "$msg_file")"
+
+# Let git-generated merge and revert messages through.
+if [[ "$subject" == Merge\ * || "$subject" == Revert\ * ]]; then
+  exit 0
+fi
+
+pattern='^(feat|fix|perf|refactor|docs|test|ci|build|chore|revert)(\([a-z0-9._/-]+\))?!?: .{1,72}$'
+
+if [[ ! "$subject" =~ $pattern ]]; then
+  cat >&2 <<EOF
+ERROR: commit message does not follow the required format.
+
+  Your subject: $subject
+
+  Expected:     <type>(<optional scope>): <summary>
+  Types:        feat, fix, perf, refactor, docs, test, ci, build, chore, revert
+  Example:      fix(client): retry on 429 responses
+
+  See COMMIT_MESSAGES.md for the full rules.
+EOF
+  exit 1
+fi
