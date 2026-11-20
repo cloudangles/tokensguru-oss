@@ -1,16 +1,55 @@
 name: Publish to PyPI
 
-# Runs only when a version tag such as v1.0.0 is pushed.
+# Releases are driven by the version in src/tokensguru/version.py.
+# A push to main that changes that file publishes the version if PyPI does not
+# have it yet. If the version is already published, the run only writes a note.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: ["src/tokensguru/version.py"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  check-version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read package version
+        id: version
+        run: |
+          version=$(python3 -c "import runpy; print(runpy.run_path('src/tokensguru/version.py')['__version__'])")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether PyPI already has this version
+        id: check
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/tokensguru/${VERSION}/json")
+          if [ "$code" = "200" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Version ${VERSION} is already on PyPI. Nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Version ${VERSION} is new. Publishing to PyPI." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  publish:
+    needs: check-version
+    if: needs.check-version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: write  # needed to create the version tag
+    env:
+      VERSION: ${{ needs.check-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -18,36 +57,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check the tag matches the package version
-        run: |
-          version=$(python -c "import runpy; print(runpy.run_path('src/tokensguru/version.py')['__version__'])")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package version $version"
-            exit 1
-          fi
-
       - name: Build and check the package
         run: |
           python -m pip install build twine
           python -m build
           python -m twine check dist/*
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    environment: pypi
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
       - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Tag the release
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists."
+          else
+            git tag "v${VERSION}"
+            git push origin "v${VERSION}"
+          fi
