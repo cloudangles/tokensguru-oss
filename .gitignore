@@ -14,3 +14,9 @@ venv/
 
 # Local environment and secrets
 .env
+
+# Coverage output
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/

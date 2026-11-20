@@ -1,4 +1,4 @@
-"""`tokensguru dashboard`: full-screen dashboard. Press o for observability, Ctrl+X to exit."""
+"""`tokensguru dashboard`: full-screen view. o opens observability, Ctrl+X exits."""
 
 from __future__ import annotations
 
