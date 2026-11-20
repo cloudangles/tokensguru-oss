@@ -18,3 +18,6 @@ version = {attr = "tokensguru.version.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+extend-exclude = ["tokenguru-client"]
