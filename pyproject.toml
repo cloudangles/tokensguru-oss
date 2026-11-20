@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tokensguru"
+dynamic = ["version"]
+description = "Reduce LLM token usage and cost."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+tokensguru = "tokensguru.cli.main:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "tokensguru.version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

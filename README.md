@@ -8,3 +8,15 @@
   <img src="https://img.shields.io/badge/runtime_dependencies-none-2ea44f?style=for-the-badge" alt="No required runtime dependencies" />
   <img src="https://img.shields.io/badge/status-beta-orange?style=for-the-badge" alt="Beta" />
 </p>
+
+## Installation
+
+Requires Python 3.9 or later.
+
+```bash
+# From a local clone
+pip install .
+
+# For development (editable install)
+pip install -e .
+```
