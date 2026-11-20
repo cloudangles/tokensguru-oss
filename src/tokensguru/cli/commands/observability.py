@@ -1,4 +1,4 @@
-"""`tokensguru observability`: trace table. Select a row and press Enter for its graph and tree."""
+"""`tokensguru observability`: trace table. Enter opens a trace graph and tree."""
 
 from __future__ import annotations
 

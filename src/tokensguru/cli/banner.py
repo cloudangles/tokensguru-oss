@@ -1,4 +1,4 @@
-"""The TokensGuru wordmark, rendered from media/public/tokensguru_logo.png, with a shimmer animation."""
+"""TokensGuru wordmark (from media/public/tokensguru_logo.png) and its shimmer."""
 
 import sys
 import time

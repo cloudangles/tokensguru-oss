@@ -1,4 +1,4 @@
-"""Shared full-screen view: a double-border frame with colored buttons that waits for one key."""
+"""Shared full-screen view: double-border frame, coloured buttons, one key."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ Button = tuple[str, str]  # (label, background colour code)
 
 
 def _read_key() -> str:
-    """Read one key. Arrow keys arrive as three bytes (ESC [ A/B/C/D) and are returned whole."""
+    """Read one key. Arrow keys arrive as three bytes and are returned whole."""
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     try:

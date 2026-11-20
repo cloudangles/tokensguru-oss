@@ -1,4 +1,4 @@
-"""Command-line entry point: registers each command and runs the one that was asked for."""
+"""Command-line entry point: registers the commands and runs the chosen one."""
 
 from __future__ import annotations
 
