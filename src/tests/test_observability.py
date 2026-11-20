@@ -62,3 +62,24 @@ def test_graph_and_tree_show_every_span():
 def test_observability_view_asks_to_exit_when_not_interactive(capsys):
     assert observability.view() is True
     assert "No traces yet." in capsys.readouterr().out
+
+
+def test_gauge_fills_in_proportion():
+    assert render._gauge(0.0) == "░░░░"
+    assert render._gauge(0.5) == "██░░"
+    assert render._gauge(1.0) == "████"
+    assert render._gauge(3.0) == "████"  # values above 1 are clamped
+
+
+def test_tokens_bar_is_full_for_the_busiest_trace():
+    busy = _trace("busy")
+    quiet = Trace(**{**busy.__dict__, "tokens": 0, "prompt": "quiet"})
+    table = render.table([busy, quiet], 90)
+    assert "████ 10" in table.rows[0]
+    assert "░░░░ 0" in table.rows[1]
+
+
+def test_saved_shows_percentage_and_gauge_or_na():
+    table = render.table([_trace("a"), _trace("b", saved_pct=None)], 90)
+    assert "50.0% ██░░" in table.rows[0]
+    assert "n/a" in table.rows[1]
