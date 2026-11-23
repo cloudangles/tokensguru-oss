@@ -94,6 +94,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install release helper dependencies
+        run: python -m pip install packaging
+
       - name: Write release notes from the changelog
         run: python tools/release.py notes "${VERSION}" > release-notes.md
 
