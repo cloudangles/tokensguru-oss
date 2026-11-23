@@ -35,3 +35,39 @@ def test_help_lists_commands(capsys):
     out = capsys.readouterr().out
     assert "version" in out
     assert "info" in out
+
+
+def test_help_lists_the_docs_command(capsys):
+    assert main([]) == 0
+    assert "docs" in capsys.readouterr().out
+
+
+def test_docs_command_starts_the_server(monkeypatch):
+    seen = {}
+
+    def fake_serve(port=None, open_browser=True):
+        seen.update(port=port, open_browser=open_browser)
+        return 0
+
+    monkeypatch.setattr("tokensguru.cli.commands.docs.serve", fake_serve)
+    assert main(["docs"]) == 0
+    assert seen == {"port": None, "open_browser": True}
+    assert main(["docs", "--port", "9100", "--no-open"]) == 0
+    assert seen == {"port": 9100, "open_browser": False}
+
+
+def test_docs_command_reports_a_port_that_cannot_be_used(monkeypatch, capsys):
+    def fake_serve(port=None, open_browser=True):
+        raise OSError("Address already in use")
+
+    monkeypatch.setattr("tokensguru.cli.commands.docs.serve", fake_serve)
+    assert main(["docs", "--port", "9100"]) == 1
+    assert "Address already in use" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("port", ["abc", "-1", "70000", "1.5", ""])
+def test_docs_command_rejects_a_bad_port(port, capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(["docs", "--port", port])
+    assert exc.value.code == 2
+    assert "port" in capsys.readouterr().err

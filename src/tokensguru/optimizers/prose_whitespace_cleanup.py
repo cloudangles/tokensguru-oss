@@ -16,9 +16,10 @@ What it leaves alone:
 How to use it:
     from tokensguru.optimizers import WhitespaceCleaner
 
-    cleaner = WhitespaceCleaner()
-    cleaner.optimize("hello    world  ")      # "hello world"
-    cleaner.report("hello    world  ").saved_chars
+    result = WhitespaceCleaner().optimize("hello    world  ")
+    result.optimized_text        # "hello world"
+    result.original_tokens, result.optimized_tokens, result.saved_tokens
+    print(result)                # id, tokens, characters, reason and more
 
 Options:
     max_blank_lines: how many blank lines to keep in a row (default 1).
@@ -29,8 +30,8 @@ Options:
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 
+from tokensguru.optimizers.base import Optimizer
 from tokensguru.optimizers.utils import (
     BlockTracker,
     front_matter_length,
@@ -38,35 +39,13 @@ from tokensguru.optimizers.utils import (
     split_line_ending,
     split_lines,
 )
+from tokensguru.tokens import TokenCounter
+from tokensguru.utils.validation import require_text
 
 _EXTRA_WHITESPACE = re.compile(r"[ \t]{2,}")
 
 
-@dataclass(frozen=True)
-class CleanupResult:
-    text: str
-    original_length: int
-
-    @property
-    def cleaned_length(self) -> int:
-        return len(self.text)
-
-    @property
-    def saved_chars(self) -> int:
-        return self.original_length - self.cleaned_length
-
-    @property
-    def saved_percent(self) -> float:
-        if not self.original_length:
-            return 0.0
-        return round(100 * self.saved_chars / self.original_length, 2)
-
-    @property
-    def changed(self) -> bool:
-        return self.saved_chars > 0
-
-
-class WhitespaceCleaner:
+class WhitespaceCleaner(Optimizer):
     id = "prose_whitespace_cleanup"
     name = "Prose whitespace cleanup"
     applied_reason = (
@@ -76,8 +55,12 @@ class WhitespaceCleaner:
     skipped_reason = "No safe change was found in eligible prose."
 
     def __init__(
-        self, max_blank_lines: int = 1, keep_markdown_line_breaks: bool = False
+        self,
+        max_blank_lines: int = 1,
+        keep_markdown_line_breaks: bool = False,
+        counter: TokenCounter | None = None,
     ) -> None:
+        super().__init__(counter)
         if isinstance(max_blank_lines, bool) or not isinstance(max_blank_lines, int):
             raise TypeError("max_blank_lines must be an int")
         if max_blank_lines < 0:
@@ -85,10 +68,9 @@ class WhitespaceCleaner:
         self.max_blank_lines = max_blank_lines
         self.keep_markdown_line_breaks = keep_markdown_line_breaks
 
-    def optimize(self, text: str, context: dict[str, object] | None = None) -> str:
+    def transform(self, text: str, context: dict[str, object] | None = None) -> str:
         del context
-        if not isinstance(text, str):
-            raise TypeError(f"text must be a str, not {type(text).__name__}")
+        require_text(text)
         if is_json_document(text):
             return text
 
@@ -111,9 +93,6 @@ class WhitespaceCleaner:
                 blank_run = 0
         return "".join(output)
 
-    def report(self, text: str) -> CleanupResult:
-        return CleanupResult(self.optimize(text), len(text))
-
     def _clean_line(self, body: str, lines: list[str], index: int) -> str:
         indent = body[: len(body) - len(body.lstrip(" \t"))]
         words = _EXTRA_WHITESPACE.sub(" ", body[len(indent) :].rstrip(" \t"))
@@ -126,6 +105,3 @@ class WhitespaceCleaner:
             return False
         following = lines[index + 1 :]
         return bool(following) and bool(following[0].strip(" \t\r\n"))
-
-    def __call__(self, text: str, context: dict[str, object] | None = None) -> str:
-        return self.optimize(text, context)

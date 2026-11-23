@@ -50,6 +50,11 @@ class BlockTracker:
         self._raw_tag: str | None = None
 
     def protects(self, line: str) -> bool:
+        if self.in_block(line):
+            return True
+        return bool(line.strip(" \t")) and _is_code_or_table_line(line)
+
+    def in_block(self, line: str) -> bool:
         if self._fence is not None:
             self._close_fence(line)
             return True
@@ -59,7 +64,7 @@ class BlockTracker:
             return True
         if not line.strip(" \t"):
             return False
-        return self._opens_block(line) or _is_code_or_table_line(line)
+        return self._opens_block(line)
 
     def _close_fence(self, line: str) -> None:
         match = _FENCE_CLOSE.match(line)
