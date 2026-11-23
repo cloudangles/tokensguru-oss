@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import NamedTuple
 
 from tokensguru.observability.models import Trace
@@ -11,31 +10,22 @@ SEP = " "
 INDENT = "    "
 MIN_PROMPT_WIDTH = 16
 BOX_INNER = 20
-
-
-class Column(NamedTuple):
-    header: str
-    width: int
-    value: Callable[[Trace], str]
+GAUGE_CELLS = 4
+FULL_CELL = "█"
+EMPTY_CELL = "░"
+# (header, width) for the columns after the prompt. Each cell is built in _cells().
+METRIC_COLUMNS = [
+    ("Models", 12),
+    ("Latency", 8),
+    ("Tokens", 10),
+    ("Cost", 10),
+    ("Saved", 10),
+]
 
 
 class Table(NamedTuple):
     header: list[str]
     rows: list[str]
-
-
-def _saved(trace: Trace) -> str:
-    return "n/a" if trace.saved_pct is None else f"{trace.saved_pct:.1f}%"
-
-
-COLUMNS = [
-    Column("Spans", 5, lambda t: str(len(t.spans))),
-    Column("Models", 12, lambda t: t.model),
-    Column("Latency", 8, lambda t: f"{t.latency_ms / 1000:.2f}s"),
-    Column("Tokens", 7, lambda t: f"{t.tokens:,}"),
-    Column("Cost", 10, lambda t: f"${t.cost:.6f}"),
-    Column("Saved", 6, _saved),
-]
 
 
 def _fit(text: str, width: int) -> str:
@@ -48,14 +38,39 @@ def _row(cells: list[str], widths: list[int]) -> str:
     return SEP.join(_fit(cell, width) for cell, width in zip(cells, widths))
 
 
+def _gauge(fraction: float) -> str:
+    """A small bar that is filled in proportion to `fraction` (0 to 1)."""
+    clamped = min(1.0, max(0.0, fraction))
+    filled = round(clamped * GAUGE_CELLS)
+    return FULL_CELL * filled + EMPTY_CELL * (GAUGE_CELLS - filled)
+
+
+def _cells(trace: Trace, max_tokens: int) -> list[str]:
+    """Metric cells for one trace. Tokens show a bar relative to the busiest trace."""
+    share = trace.tokens / max_tokens if max_tokens else 0.0
+    if trace.saved_pct is None:
+        saved = "n/a"
+    else:
+        saved = f"{trace.saved_pct:4.1f}% {_gauge(trace.saved_pct / 100)}"
+    return [
+        trace.model,
+        f"{trace.latency_ms / 1000:.2f}s",
+        f"{_gauge(share)} {trace.tokens:,}",
+        f"${trace.cost:.6f}",
+        saved,
+    ]
+
+
 def table(traces: list[Trace], width: int) -> Table:
-    """Header lines and one row per trace, sized to fit `width` columns."""
-    gaps = len(SEP) * len(COLUMNS)
-    prompt_width = max(MIN_PROMPT_WIDTH, width - sum(c.width for c in COLUMNS) - gaps)
-    widths = [prompt_width, *(c.width for c in COLUMNS)]
-    header = _row(["Input", *(c.header for c in COLUMNS)], widths)
+    """Header and one row per trace, sized to fit `width` columns."""
+    gaps = len(SEP) * len(METRIC_COLUMNS)
+    metric_width = sum(w for _, w in METRIC_COLUMNS)
+    prompt_width = max(MIN_PROMPT_WIDTH, width - metric_width - gaps - len(SEP))
+    widths = [prompt_width, *(w for _, w in METRIC_COLUMNS)]
+    header = _row(["Input", *(name for name, _ in METRIC_COLUMNS)], widths)
     rule = "─" * (sum(widths) + gaps)
-    rows = [_row([t.prompt, *(c.value(t) for c in COLUMNS)], widths) for t in traces]
+    max_tokens = max((t.tokens for t in traces), default=0)
+    rows = [_row([t.prompt, *_cells(t, max_tokens)], widths) for t in traces]
     return Table([header, rule], rows)
 
 
