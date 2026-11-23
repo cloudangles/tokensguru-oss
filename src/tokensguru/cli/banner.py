@@ -3,7 +3,7 @@
 import sys
 import time
 
-from tokensguru.cli.style import PURPLE, RESET, WHITE_BOLD, cursor_up
+from tokensguru.cli.style import BRAND, RESET, WHITE_BOLD, cursor_up
 
 SHIMMER_WIDTH = 2
 FRAME_DELAY = 0.015
@@ -26,7 +26,7 @@ def _frame(lines: list[str], x: int) -> list[str]:
     rows = []
     for line in lines:
         cells = [
-            f"{WHITE_BOLD if abs(i - x) <= SHIMMER_WIDTH else PURPLE}{ch}"
+            f"{WHITE_BOLD if abs(i - x) <= SHIMMER_WIDTH else BRAND}{ch}"
             for i, ch in enumerate(line)
         ]
         rows.append("".join(cells) + RESET)

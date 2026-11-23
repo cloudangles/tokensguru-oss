@@ -23,23 +23,6 @@ def test_info_command_prints_package_details(capsys):
     assert __version__ in out
 
 
-def test_dashboard_prints_screen(capsys):
-    assert main(["dashboard"]) == 0
-    assert "TokensGuru Dashboard" in capsys.readouterr().out
-
-
-def test_observability_prints_screen(capsys):
-    assert main(["observability"]) == 0
-    assert "TokensGuru Observability" in capsys.readouterr().out
-
-
-def test_short_flags_open_views(capsys):
-    assert main(["-d"]) == 0
-    assert "TokensGuru Dashboard" in capsys.readouterr().out
-    assert main(["-o"]) == 0
-    assert "TokensGuru Observability" in capsys.readouterr().out
-
-
 def test_no_arguments_prints_help(capsys):
     assert main([]) == 0
     assert "usage: tokensguru" in capsys.readouterr().out

@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 
 from tokensguru import __version__
-from tokensguru.cli.commands import dashboard, info, observability, version
+from tokensguru.cli.commands import info, version
 
 PROG = "tokensguru"
 
@@ -13,19 +13,6 @@ PROG = "tokensguru"
 COMMANDS = [
     ("version", "Show version information", version.run),
     ("info", "Show package information", info.run),
-    ("dashboard", "Open the full-screen dashboard", dashboard.run),
-    ("observability", "Open the observability view", observability.run),
-]
-
-# (short flag, long flag, help text, function that runs it)
-SHORTCUTS = [
-    ("-d", "--dashboard", "open the dashboard (same as 'dashboard')", dashboard.run),
-    (
-        "-o",
-        "--observability",
-        "open observability (same as 'observability')",
-        observability.run,
-    ),
 ]
 
 
@@ -34,10 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog=PROG, description="Reduce LLM token usage and cost."
     )
     parser.add_argument("--version", action="version", version=f"{PROG} {__version__}")
-    for short, long, help_text, run in SHORTCUTS:
-        parser.add_argument(
-            short, long, dest="run", action="store_const", const=run, help=help_text
-        )
+    parser.set_defaults(run=None)
 
     subparsers = parser.add_subparsers(dest="command", metavar="<command>")
     for name, help_text, run in COMMANDS:

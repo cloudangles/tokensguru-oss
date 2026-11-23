@@ -1,14 +1,12 @@
-"""Terminal colours and styles (ANSI escape codes) shared by every screen."""
+"""Terminal colours and styles (ANSI escape codes) shared by the commands."""
 
 import os
 import sys
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
-REVERSE = "\033[7m"
-PURPLE = "\033[38;5;98m"
-PURPLE_BG = "\033[48;5;98m"
-RED_BG = "\033[48;5;160m"
+# Brand gold, hsla(42, 100%, 40%, 1) = rgb(204, 143, 0), as a 24-bit colour code.
+BRAND = "\033[38;2;204;143;0m"
 WHITE_BOLD = "\033[1;38;5;231m"
 
 

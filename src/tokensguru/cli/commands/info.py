@@ -8,7 +8,7 @@ from pathlib import Path
 
 import tokensguru
 from tokensguru.cli.banner import show_logo
-from tokensguru.cli.style import BOLD, PURPLE, RESET, use_color
+from tokensguru.cli.style import BOLD, BRAND, RESET, use_color
 
 
 def _package_field(field: str) -> str:
@@ -40,7 +40,7 @@ def _rows() -> list[tuple[str, str]]:
 def _print_table(rows: list[tuple[str, str]], color: bool) -> None:
     key_w = max(len(key) for key, _ in rows)
     val_w = max(len(val) for _, val in rows)
-    key_style = f"{BOLD}{PURPLE}" if color else ""
+    key_style = f"{BOLD}{BRAND}" if color else ""
     reset = RESET if color else ""
     print("╭" + "─" * (key_w + 2) + "┬" + "─" * (val_w + 2) + "╮")
     for key, val in rows:
